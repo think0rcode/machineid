@@ -53,6 +53,18 @@ bios, inst := machineid.RawID()
 fmt.Println("bios:", bios, "install:", inst)
 ```
 
+### CLI debugging tool
+
+A small helper at `cmd/print` prints the raw components and the hashed ID. It also supports logging and, on Windows, optional tool checks:
+
+```bash
+# Print values with debug logs
+go run ./cmd/print --log-level debug
+
+# On Windows, also check PowerShell and WMIC availability
+go run ./cmd/print --check-tools
+```
+
 ## Supported platforms
 
 - **Linux** – reads the SMBIOS UUID from `/sys/class/dmi/id/product_uuid`
@@ -61,9 +73,9 @@ fmt.Println("bios:", bios, "install:", inst)
 - **macOS** – obtains the hardware UUID from `ioreg` (falling back to
   `system_profiler`) and uses the system serial number as the installation ID,
   reusing the hardware UUID if unavailable.
-- **Windows** – queries the SMBIOS UUID via PowerShell's CIM interface (with
-  `wmic` fallback) and reads the installation ID from the `MachineGuid` registry
-  value using `reg query`.
+- **Windows** – queries the SMBIOS UUID via PowerShell (prefers `Get-CimInstance`,
+  falls back to `Get-WmiObject`, then `wmic`) and reads the installation ID
+  from the `MachineGuid` registry value using the Go Windows registry API.
 
 ## Releasing
 

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"runtime"
 	"strings"
 )
@@ -15,21 +16,22 @@ import (
 // installation identifier when available. The identifier is stable for a
 // given machine yet changes when the VM or host is cloned.
 func ID() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
-	defer cancel()
+	slog.Debug("generating machine ID", "os", runtime.GOOS)
 
-	bios, biosErr := getSMBIOSUUID(ctx)
-	inst, instErr := getInstallationID(ctx)
+	// Get raw identifiers using RawID to avoid code duplication
+	rawBios, rawInst, biosErr, instErr := RawID()
 
-	bios = strings.ToLower(strings.TrimSpace(bios))
-	inst = strings.ToLower(strings.TrimSpace(inst))
+	slog.Debug("retrieved raw identifiers",
+		"bios_uuid_redacted", redactID(rawBios),
+		"bios_error", biosErr,
+		"installation_id_redacted", redactID(rawInst),
+		"installation_error", instErr)
+
+	bios := strings.ToLower(rawBios)
+	inst := strings.ToLower(rawInst)
 
 	if isZeroUUID(bios) {
 		bios = ""
-	}
-
-	if bios == "" && inst == "" {
-		return "", errors.New("machineid: unable to read BIOS UUID or installation ID")
 	}
 
 	if bios == "" && inst == "" {
@@ -37,32 +39,58 @@ func ID() (string, error) {
 		if biosErr != nil && instErr != nil &&
 			strings.Contains(biosErr.Error(), "unsupported platform") &&
 			strings.Contains(instErr.Error(), "unsupported platform") {
+
+			slog.Error("platform not supported", "bios_error", biosErr, "installation_error", instErr)
 			return "", errors.New("machineid: unsupported platform")
 		}
 
 		// Otherwise, return a combined error to aid debugging
 		if biosErr != nil && instErr != nil {
+			slog.Error("failed to read both identifiers", "bios_error", biosErr, "installation_error", instErr)
 			return "", fmt.Errorf("machineid: unable to read BIOS UUID (%w) or installation ID (%w)", biosErr, instErr)
 		} else if biosErr != nil {
+			slog.Error("failed to read BIOS UUID", "bios_error", biosErr, "installation_id_empty", true)
 			return "", fmt.Errorf("machineid: unable to read BIOS UUID (%w), installation ID empty", biosErr)
 		} else if instErr != nil {
+			slog.Error("failed to read installation ID", "installation_error", instErr, "bios_uuid_empty", true)
 			return "", fmt.Errorf("machineid: unable to read installation ID (%w), BIOS UUID empty", instErr)
 		}
 
 		return "", errors.New("machineid: unable to read BIOS UUID or installation ID")
 	}
 
+	slog.Debug("generating hash from identifiers",
+		"os", runtime.GOOS,
+		"bios_uuid_redacted", redactID(bios),
+		"installation_id_redacted", redactID(inst))
+
 	h := sha256.New()
-	h.Write([]byte("os:" + runtime.GOOS + "|bios:" + bios + "|inst:" + inst))
-	return hex.EncodeToString(h.Sum(nil)), nil
+	hashInput := "os:" + runtime.GOOS + "|bios:" + bios + "|inst:" + inst
+	h.Write([]byte(hashInput))
+	result := hex.EncodeToString(h.Sum(nil))
+
+	slog.Info("machine ID generated successfully", "id", result)
+	return result, nil
 }
 
 // RawID returns the unprocessed SMBIOS UUID and installation ID used to
 // build the hashed identifier. It is primarily useful for diagnostics.
-func RawID() (biosUUID, installID string) {
+func RawID() (biosUUID, installID string, biosErr, instErr error) {
+	slog.Debug("retrieving raw machine identifiers for diagnostics")
+
 	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
 	defer cancel()
-	bios, _ := getSMBIOSUUID(ctx)
-	inst, _ := getInstallationID(ctx)
-	return strings.TrimSpace(bios), strings.TrimSpace(inst)
+	bios, biosErr := getSMBIOSUUID(ctx)
+	inst, instErr := getInstallationID(ctx)
+
+	biosResult := strings.TrimSpace(bios)
+	instResult := strings.TrimSpace(inst)
+
+	slog.Debug("raw identifiers retrieved",
+		"bios_uuid_redacted", redactID(biosResult),
+		"bios_error", biosErr,
+		"installation_id_redacted", redactID(instResult),
+		"installation_error", instErr)
+
+	return biosResult, instResult, biosErr, instErr
 }
