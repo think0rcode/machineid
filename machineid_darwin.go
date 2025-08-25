@@ -36,5 +36,10 @@ func getInstallationID(ctx context.Context) (string, error) {
 		}
 	}
 	// Fallback: reuse hardware UUID if serial number unavailable
-	return getSMBIOSUUID(ctx)
+	uuid, err := getSMBIOSUUID(ctx)
+	if err != nil {
+		return "", errors.New("neither serial number nor hardware UUID found")
+	}
+	return uuid, nil
+
 }

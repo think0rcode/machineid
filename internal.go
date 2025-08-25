@@ -16,7 +16,9 @@ func run(ctx context.Context, name string, args ...string) string {
 	var b bytes.Buffer
 	cmd.Stdout = &b
 	cmd.Stderr = &b
-	_ = cmd.Run()
+	if cmd.Run() != nil {
+		return ""
+	}
 	return b.String()
 }
 

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"runtime"
 	"strings"
 )
@@ -17,8 +18,8 @@ func ID() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
 	defer cancel()
 
-	bios, _ := getSMBIOSUUID(ctx)
-	inst, _ := getInstallationID(ctx)
+	bios, biosErr := getSMBIOSUUID(ctx)
+	inst, instErr := getInstallationID(ctx)
 
 	bios = strings.ToLower(strings.TrimSpace(bios))
 	inst = strings.ToLower(strings.TrimSpace(inst))
@@ -28,6 +29,26 @@ func ID() (string, error) {
 	}
 
 	if bios == "" && inst == "" {
+		return "", errors.New("machineid: unable to read BIOS UUID or installation ID")
+	}
+
+	if bios == "" && inst == "" {
+		// If both backends are unsupported, surface a more specific error
+		if biosErr != nil && instErr != nil &&
+			strings.Contains(biosErr.Error(), "unsupported platform") &&
+			strings.Contains(instErr.Error(), "unsupported platform") {
+			return "", errors.New("machineid: unsupported platform")
+		}
+
+		// Otherwise, return a combined error to aid debugging
+		if biosErr != nil && instErr != nil {
+			return "", fmt.Errorf("machineid: unable to read BIOS UUID (%w) or installation ID (%w)", biosErr, instErr)
+		} else if biosErr != nil {
+			return "", fmt.Errorf("machineid: unable to read BIOS UUID (%w), installation ID empty", biosErr)
+		} else if instErr != nil {
+			return "", fmt.Errorf("machineid: unable to read installation ID (%w), BIOS UUID empty", instErr)
+		}
+
 		return "", errors.New("machineid: unable to read BIOS UUID or installation ID")
 	}
 

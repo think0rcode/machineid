@@ -79,4 +79,4 @@ fmt.Println("bios:", bios, "install:", inst)
 
 ## License
 
-This project is licensed under the terms of the MIT license. See [LICENSE](LICENSE).
+This project is licensed under the terms of the Apache License 2.0. See [LICENSE](LICENSE).

@@ -4,13 +4,12 @@ package machineid
 
 import (
 	"context"
-	"errors"
 )
 
 func getSMBIOSUUID(context.Context) (string, error) {
-	return "", errors.New("unsupported platform")
+	return "", ErrUnsupported
 }
 
 func getInstallationID(context.Context) (string, error) {
-	return "", errors.New("unsupported platform")
+	return "", ErrUnsupported
 }
