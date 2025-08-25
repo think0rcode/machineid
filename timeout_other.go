@@ -5,4 +5,4 @@ package machineid
 import "time"
 
 // Default timeout for non-Windows platforms
-const cmdTimeout = 1500 * time.Millisecond
+const cmdTimeout = 5 * time.Second

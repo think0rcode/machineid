@@ -11,10 +11,8 @@ import (
 
 func main() {
 	var logLevel = flag.String("log-level", "", "Set log level (error, info, debug). Can also use MACHINEID_LOG_LEVEL env var")
-	var checkTools = flag.Bool("check-tools", true, "On Windows, check availability of PowerShell and WMIC")
+	var checkTools = flag.Bool("check-tools", false, "On Windows, check availability of PowerShell and WMIC")
 	flag.Parse()
-
-	fmt.Println("logLevel", *logLevel, "env", os.Getenv("MACHINEID_LOG_LEVEL"))
 
 	// Configure logging based on flag or environment
 	if *logLevel != "" {
@@ -29,10 +27,8 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Invalid log level: %s. Valid values: error, info, debug\n", *logLevel)
 			os.Exit(1)
 		}
-	} else {
-		// Otherwise, use environment-based configuration (default)
-		machineid.SetLogLevel(machineid.LogLevelDebug) // for debugging
 	}
+	// Otherwise, use environment-based configuration (default)
 
 	slog.Info("starting machineid print tool")
 
@@ -41,7 +37,13 @@ func main() {
 
 	// Get raw components
 	slog.Info("retrieving raw machine identifiers")
-	bios, inst := machineid.RawID()
+	bios, inst, biosErr, instErr := machineid.RawID()
+	if biosErr != nil {
+		slog.Error("failed to retrieve BIOS UUID", "error", biosErr)
+	}
+	if instErr != nil {
+		slog.Error("failed to retrieve installation ID", "error", instErr)
+	}
 	fmt.Printf("bios=%s\ninst=%s\n", bios, inst)
 	slog.Debug("raw identifiers retrieved", "bios", bios, "inst", inst)
 
@@ -56,4 +58,8 @@ func main() {
 
 	fmt.Printf("hashed=%s\n", id)
 	slog.Info("machine ID tool completed successfully", "id", id)
+
+	// want the process did not quit, until i press enter
+	fmt.Println("Press Enter to exit...")
+	fmt.Scanln()
 }

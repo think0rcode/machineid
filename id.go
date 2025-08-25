@@ -18,20 +18,17 @@ import (
 func ID() (string, error) {
 	slog.Debug("generating machine ID", "os", runtime.GOOS)
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
-	defer cancel()
-
-	bios, biosErr := getSMBIOSUUID(ctx)
-	inst, instErr := getInstallationID(ctx)
+	// Get raw identifiers using RawID to avoid code duplication
+	rawBios, rawInst, biosErr, instErr := RawID()
 
 	slog.Debug("retrieved raw identifiers",
-		"bios_uuid", bios,
+		"bios_uuid", rawBios,
 		"bios_error", biosErr,
-		"installation_id", inst,
+		"installation_id", rawInst,
 		"installation_error", instErr)
 
-	bios = strings.ToLower(strings.TrimSpace(bios))
-	inst = strings.ToLower(strings.TrimSpace(inst))
+	bios := strings.ToLower(rawBios)
+	inst := strings.ToLower(rawInst)
 
 	if isZeroUUID(bios) {
 		bios = ""
@@ -83,7 +80,7 @@ func ID() (string, error) {
 
 // RawID returns the unprocessed SMBIOS UUID and installation ID used to
 // build the hashed identifier. It is primarily useful for diagnostics.
-func RawID() (biosUUID, installID string) {
+func RawID() (biosUUID, installID string, biosErr, instErr error) {
 	slog.Debug("retrieving raw machine identifiers for diagnostics")
 
 	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
@@ -100,5 +97,5 @@ func RawID() (biosUUID, installID string) {
 		"installation_id", instResult,
 		"installation_error", instErr)
 
-	return biosResult, instResult
+	return biosResult, instResult, biosErr, instErr
 }

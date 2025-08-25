@@ -34,3 +34,6 @@ go.work.sum
 # macOS
 .DS_Store
 **/.DS_Store
+
+# build
+build/

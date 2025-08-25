@@ -31,11 +31,11 @@ func runSilent(timeout time.Duration, name string, args ...string) (string, erro
 // runWindowsDiagnostics prints basic environment diagnostics for Windows.
 // It mirrors the checks from cmd/wincheck, and is a no-op on other OSes.
 func runWindowsDiagnostics(checkTools bool) {
-	fmt.Printf("wincheck: GOOS=%s GOARCH=%s\n", runtime.GOOS, runtime.GOARCH)
-
 	if !checkTools {
 		return
 	}
+
+	fmt.Printf("wincheck: GOOS=%s GOARCH=%s\n", runtime.GOOS, runtime.GOARCH)
 
 	// PowerShell version
 	psOut, psErr := runSilent(2*time.Second, "powershell", "-NoProfile", "-Command", "[string]$PSVersionTable.PSVersion")
