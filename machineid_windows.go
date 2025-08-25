@@ -3,41 +3,33 @@
 package machineid
 
 import (
+	"context"
 	"errors"
-	"os/exec"
 	"strings"
-
-	"golang.org/x/sys/windows/registry"
 )
 
-func getSMBIOSUUID() (string, error) {
-	out, err := exec.Command("wmic", "csproduct", "get", "UUID").CombinedOutput()
-	if err != nil {
-		return "", err
+func getSMBIOSUUID(ctx context.Context) (string, error) {
+	out := run(ctx, "powershell", "-NoProfile", "-Command", "(Get-CimInstance Win32_ComputerSystemProduct).UUID")
+	if u := firstUUID(out); u != "" {
+		return u, nil
 	}
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.EqualFold(line, "uuid") {
-			continue
-		}
-		return strings.ToLower(line), nil
+	out = run(ctx, "wmic", "csproduct", "get", "uuid")
+	if u := firstUUID(out); u != "" {
+		return u, nil
 	}
-	return "", errors.New("wmic returned no uuid")
+	return "", errors.New("no uuid found")
 }
 
-func getInstallationID() (string, error) {
-	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Cryptography`, registry.QUERY_VALUE)
-	if err != nil {
-		return "", err
+func getInstallationID(ctx context.Context) (string, error) {
+	out := run(ctx, "cmd", "/C", `reg query HKLM\SOFTWARE\Microsoft\Cryptography /v MachineGuid`)
+	lines := strings.Split(out, "\n")
+	for _, ln := range lines {
+		if strings.Contains(ln, "MachineGuid") {
+			fields := strings.Fields(ln)
+			if len(fields) > 0 {
+				return strings.ToLower(fields[len(fields)-1]), nil
+			}
+		}
 	}
-	defer k.Close()
-	s, _, err := k.GetStringValue("MachineGuid")
-	if err != nil {
-		return "", err
-	}
-	if s == "" {
-		return "", errors.New("machine guid empty")
-	}
-	return strings.ToLower(s), nil
+	return "", errors.New("MachineGuid not found")
 }

@@ -18,3 +18,11 @@ func TestIDStable(t *testing.T) {
 		t.Fatal("ID is empty")
 	}
 }
+
+func TestRawIDStable(t *testing.T) {
+	b1, i1 := RawID()
+	b2, i2 := RawID()
+	if b1 != b2 || i1 != i2 {
+		t.Fatalf("expected stable raw IDs, got %q/%q and %q/%q", b1, i1, b2, i2)
+	}
+}

@@ -2,12 +2,15 @@
 
 package machineid
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
-func getSMBIOSUUID() (string, error) {
+func getSMBIOSUUID(context.Context) (string, error) {
 	return "", errors.New("unsupported platform")
 }
 
-func getInstallationID() (string, error) {
+func getInstallationID(context.Context) (string, error) {
 	return "", errors.New("unsupported platform")
 }

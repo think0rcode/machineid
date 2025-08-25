@@ -3,22 +3,31 @@
 package machineid
 
 import (
-	"fmt"
-	"os/exec"
+	"context"
+	"errors"
 	"strings"
 )
 
-func getIOPlatformProperty(prop string) (string, error) {
-	out, err := exec.Command("ioreg", "-rd1", "-c", "IOPlatformExpertDevice").Output()
-	if err != nil {
-		return "", err
+func getSMBIOSUUID(ctx context.Context) (string, error) {
+	out := run(ctx, "ioreg", "-rd1", "-c", "IOPlatformExpertDevice")
+	if u := firstUUID(out); u != "" {
+		return u, nil
 	}
-	for _, line := range strings.Split(string(out), "\n") {
+	out = run(ctx, "system_profiler", "SPHardwareDataType")
+	if u := firstUUID(out); u != "" {
+		return u, nil
+	}
+	return "", errors.New("IOPlatformUUID not found")
+}
+
+func getInstallationID(ctx context.Context) (string, error) {
+	out := run(ctx, "ioreg", "-rd1", "-c", "IOPlatformExpertDevice")
+	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "\""+prop+"\"") {
+		if strings.HasPrefix(line, "\"IOPlatformSerialNumber\"") {
 			parts := strings.Split(line, "=")
 			if len(parts) != 2 {
-				continue
+				break
 			}
 			v := strings.Trim(parts[1], " \"")
 			if v != "" {
@@ -26,16 +35,6 @@ func getIOPlatformProperty(prop string) (string, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("%s not found", prop)
-}
-
-func getSMBIOSUUID() (string, error) {
-	return getIOPlatformProperty("IOPlatformUUID")
-}
-
-func getInstallationID() (string, error) {
-	// macOS does not expose an explicit installation ID. We approximate this
-	// using the serial number from the IORegistry, which changes on hardware
-	// replacement and differs across VM clones.
-	return getIOPlatformProperty("IOPlatformSerialNumber")
+	// Fallback: reuse hardware UUID if serial number unavailable
+	return getSMBIOSUUID(ctx)
 }
