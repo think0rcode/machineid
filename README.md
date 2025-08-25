@@ -23,7 +23,7 @@ on modern macOS versions that randomise network interfaces on each reboot.
 Install the module:
 
 ```bash
-go get github.com/machineid/machineid
+go get github.com/think0rcode/machineid
 ```
 
 Then use it in your code:
@@ -34,7 +34,7 @@ package main
 import (
     "fmt"
 
-    "github.com/machineid/machineid"
+    "github.com/think0rcode/machineid"
 )
 
 func main() {
