@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/think0rcode/machineid"
 )
@@ -44,8 +45,8 @@ func main() {
 	if instErr != nil {
 		slog.Error("failed to retrieve installation ID", "error", instErr)
 	}
-	fmt.Printf("bios=%s\ninst=%s\n", bios, inst)
-	slog.Debug("raw identifiers retrieved", "bios", bios, "inst", inst)
+	fmt.Printf("bios=%s\ninst=%s\n", redactID(bios), redactID(inst))
+	slog.Debug("raw identifiers retrieved", "bios_redacted", redactID(bios), "inst_redacted", redactID(inst))
 
 	// Get hashed machine ID
 	slog.Info("generating hashed machine ID")
@@ -58,8 +59,16 @@ func main() {
 
 	fmt.Printf("hashed=%s\n", id)
 	slog.Info("machine ID tool completed successfully", "id", id)
+}
 
-	// want the process did not quit, until i press enter
-	fmt.Println("Press Enter to exit...")
-	fmt.Scanln()
+// redactID returns a privacy-preserving representation like "***abcd" (last 4).
+func redactID(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	if len(s) <= 4 {
+		return "***"
+	}
+	return "***" + s[len(s)-4:]
 }

@@ -13,14 +13,14 @@ func getSMBIOSUUID(ctx context.Context) (string, error) {
 	slog.Debug("getting SMBIOS UUID on Darwin", "method", "ioreg")
 	out := run(ctx, "ioreg", "-rd1", "-c", "IOPlatformExpertDevice")
 	if u := firstUUID(out); u != "" {
-		slog.Debug("SMBIOS UUID found via ioreg", "uuid", u)
+		slog.Debug("SMBIOS UUID found via ioreg", "uuid_redacted", redactID(u))
 		return u, nil
 	}
 
 	slog.Debug("ioreg failed, trying system_profiler", "method", "system_profiler")
 	out = run(ctx, "system_profiler", "SPHardwareDataType")
 	if u := firstUUID(out); u != "" {
-		slog.Debug("SMBIOS UUID found via system_profiler", "uuid", u)
+		slog.Debug("SMBIOS UUID found via system_profiler", "uuid_redacted", redactID(u))
 		return u, nil
 	}
 
@@ -40,7 +40,7 @@ func getInstallationID(ctx context.Context) (string, error) {
 			}
 			v := strings.Trim(parts[1], " \"")
 			if v != "" {
-				slog.Debug("installation ID found via serial number", "serial", v)
+				slog.Debug("installation ID found via serial number", "serial_redacted", redactID(v))
 				return strings.ToLower(v), nil
 			}
 		}
@@ -55,6 +55,6 @@ func getInstallationID(ctx context.Context) (string, error) {
 		return "", errors.New("neither serial number nor hardware UUID found")
 	}
 
-	slog.Debug("installation ID using hardware UUID fallback", "uuid", uuid)
+	slog.Debug("installation ID using hardware UUID fallback", "uuid_redacted", redactID(uuid))
 	return uuid, nil
 }

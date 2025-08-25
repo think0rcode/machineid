@@ -29,7 +29,7 @@ func getSMBIOSUUID(_ context.Context) (string, error) {
 			slog.Debug("invalid SMBIOS UUID found", "path", p, "value", id)
 			continue
 		}
-		slog.Debug("SMBIOS UUID found", "path", p, "uuid", id)
+		slog.Debug("SMBIOS UUID found", "path", p, "uuid_redacted", redactID(id))
 		return strings.ToLower(id), nil
 	}
 
@@ -50,7 +50,7 @@ func getInstallationID(_ context.Context) (string, error) {
 		}
 		id := strings.TrimSpace(string(data))
 		if id != "" {
-			slog.Debug("installation ID found", "path", p, "id", id)
+			slog.Debug("installation ID found", "path", p, "id_redacted", redactID(id))
 			return strings.ToLower(id), nil
 		}
 		slog.Debug("empty installation ID found", "path", p)

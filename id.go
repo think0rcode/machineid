@@ -22,9 +22,9 @@ func ID() (string, error) {
 	rawBios, rawInst, biosErr, instErr := RawID()
 
 	slog.Debug("retrieved raw identifiers",
-		"bios_uuid", rawBios,
+		"bios_uuid_redacted", redactID(rawBios),
 		"bios_error", biosErr,
-		"installation_id", rawInst,
+		"installation_id_redacted", redactID(rawInst),
 		"installation_error", instErr)
 
 	bios := strings.ToLower(rawBios)
@@ -32,11 +32,6 @@ func ID() (string, error) {
 
 	if isZeroUUID(bios) {
 		bios = ""
-	}
-
-	if bios == "" && inst == "" {
-		slog.Error("failed to retrieve any machine identifiers", "bios_empty", true, "installation_empty", true)
-		return "", errors.New("machineid: unable to read BIOS UUID or installation ID")
 	}
 
 	if bios == "" && inst == "" {
@@ -66,8 +61,8 @@ func ID() (string, error) {
 
 	slog.Debug("generating hash from identifiers",
 		"os", runtime.GOOS,
-		"bios_uuid", bios,
-		"installation_id", inst)
+		"bios_uuid_redacted", redactID(bios),
+		"installation_id_redacted", redactID(inst))
 
 	h := sha256.New()
 	hashInput := "os:" + runtime.GOOS + "|bios:" + bios + "|inst:" + inst
@@ -92,9 +87,9 @@ func RawID() (biosUUID, installID string, biosErr, instErr error) {
 	instResult := strings.TrimSpace(inst)
 
 	slog.Debug("raw identifiers retrieved",
-		"bios_uuid", biosResult,
+		"bios_uuid_redacted", redactID(biosResult),
 		"bios_error", biosErr,
-		"installation_id", instResult,
+		"installation_id_redacted", redactID(instResult),
 		"installation_error", instErr)
 
 	return biosResult, instResult, biosErr, instErr
