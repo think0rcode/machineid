@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -13,5 +13,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+          cache: true
       - run: go vet ./...
       - run: go test ./...

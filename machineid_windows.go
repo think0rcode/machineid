@@ -6,10 +6,13 @@ import (
 	"context"
 	"errors"
 	"strings"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 func getSMBIOSUUID(ctx context.Context) (string, error) {
 	out := run(ctx, "powershell", "-NoProfile", "-Command", "(Get-CimInstance Win32_ComputerSystemProduct).UUID")
+
 	if u := firstUUID(out); u != "" {
 		return u, nil
 	}
@@ -21,15 +24,17 @@ func getSMBIOSUUID(ctx context.Context) (string, error) {
 }
 
 func getInstallationID(ctx context.Context) (string, error) {
-	out := run(ctx, "cmd", "/C", `reg query HKLM\SOFTWARE\Microsoft\Cryptography /v MachineGuid`)
-	lines := strings.Split(out, "\n")
-	for _, ln := range lines {
-		if strings.Contains(ln, "MachineGuid") {
-			fields := strings.Fields(ln)
-			if len(fields) > 0 {
-				return strings.ToLower(fields[len(fields)-1]), nil
-			}
-		}
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Cryptography`, registry.QUERY_VALUE|registry.WOW64_64KEY)
+	if err != nil {
+		return "", err
 	}
-	return "", errors.New("MachineGuid not found")
+	defer k.Close()
+	guid, _, err := k.GetStringValue("MachineGuid")
+	if err != nil {
+		return "", errors.New("MachineGuid not found")
+	}
+	if guid == "" {
+		return "", errors.New("machine guid empty")
+	}
+	return strings.ToLower(guid), nil
 }
